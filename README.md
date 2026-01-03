@@ -42,35 +42,37 @@ Interação com Blockchain: Wagmi, Viem e Ethers.js.
 ## Como Correr o Projeto (Quickstart)
 Siga os passos abaixo para iniciar o ambiente de desenvolvimento local:
 
-1. Instalar Dependências
+**1. Instalar Dependências**
+
 Certifique-se de que tem o Node (>= v18) e Yarn instalados.
 
-Bash
-
+```
 yarn install
-2. Iniciar a Blockchain Local (Terminal 1)
+```
+
+**2. Iniciar a Blockchain Local (Terminal 1)**
+
 Este comando inicia uma rede Ethereum local (Hardhat Network) para testes.
 
 
 ```
 yarn chain
-
 ```
 
-3. Fazer Deploy do Contrato (Terminal 2)
+**3. Fazer Deploy do Contrato (Terminal 2)**
+
 Compila o contrato Splitwise.sol e envia-o para a rede local.
 
 ```
 yarn deploy --reset
-
 ```
 
-4. Iniciar o Frontend (Terminal 3)
+**4. Iniciar o Frontend (Terminal 3)**
+
 Inicia a aplicação web em React.
 
 ```
 yarn start
-
 ```
 Visite http://localhost:3000 para interagir com a aplicação.
 
