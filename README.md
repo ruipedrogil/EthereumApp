@@ -1,80 +1,110 @@
-# 🏗 Scaffold-ETH 2
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+## Blockchain Splitwise (Ethereum Payment App)
+Um sistema descentralizado para gestão de dívidas e créditos com resolução automática de ciclos.
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+Este projeto é uma implementação de uma dApp (Aplicação Descentralizada) na rede Ethereum que permite aos utilizadores rastrear quem deve dinheiro a quem, funcionando como uma versão blockchain do Splitwise.
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
+O projeto foi desenvolvido utilizando o toolkit Scaffold-ETH 2, cumprindo os requisitos de utilizar Ethereum, Solidity e um framework moderno de desenvolvimento.
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+## Funcionalidades do Projeto
 
-## Requirements
+Esta aplicação implementa a lógica exigida para o controlo de IOUs (I Owe You):
 
-Before you begin, you need to install the following tools:
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+- **Adicionar Dívida** (add_IOU): Permite registar que o utilizador atual deve um valor a outro utilizador (Credor).
 
-## Quickstart
 
-To get started with Scaffold-ETH 2, follow the steps below:
+- **Resolução de Ciclos (Loop Resolution)**: Lógica implementada no cliente (Frontend) que deteta ciclos de dívida (Ex: A → B → C → A) e resolve-os automaticamente antes de enviar para a blockchain, minimizando o número de transações e dívidas pendentes.
 
-1. Install dependencies if it was skipped in CLI:
 
-```
-cd my-dapp-example
+
+- **Consultar Dívidas (lookup)**: Verifica quanto um devedor deve a um credor específico diretamente na Blockchain.
+
+
+- **Lista de Utilizadores (getUsers)**: Recupera todos os endereços que já interagiram com o sistema.
+
+
+- **Total Devido (getTotalOwed)**: Calcula o montante total que um utilizador deve a todos os outros.
+
+## Tech Stack
+
+Blockchain: Ethereum (Local Hardhat Network).
+
+
+Smart Contracts: Solidity (v0.8.17+).
+
+
+Frontend: NextJS, React, TypeScript e TailwindCSS (via Scaffold-ETH 2).
+
+Interação com Blockchain: Wagmi, Viem e Ethers.js.
+
+## Como Correr o Projeto (Quickstart)
+Siga os passos abaixo para iniciar o ambiente de desenvolvimento local:
+
+1. Instalar Dependências
+Certifique-se de que tem o Node (>= v18) e Yarn instalados.
+
+Bash
+
 yarn install
-```
+2. Iniciar a Blockchain Local (Terminal 1)
+Este comando inicia uma rede Ethereum local (Hardhat Network) para testes.
 
-2. Run a local network in the first terminal:
 
 ```
 yarn chain
-```
-
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/hardhat/hardhat.config.ts`.
-
-3. On a second terminal, deploy the test contract:
 
 ```
-yarn deploy
+
+3. Fazer Deploy do Contrato (Terminal 2)
+Compila o contrato Splitwise.sol e envia-o para a rede local.
+
+```
+yarn deploy --reset
+
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
-
-4. On a third terminal, start your NextJS app:
+4. Iniciar o Frontend (Terminal 3)
+Inicia a aplicação web em React.
 
 ```
 yarn start
+
 ```
+Visite http://localhost:3000 para interagir com a aplicação.
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+## Estrutura do Projeto
 
-Run smart contract test with `yarn hardhat:test`
+Os ficheiros principais modificados para este exercício encontram-se em:
 
-- Edit your smart contracts in `packages/hardhat/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/hardhat/deploy`
+**Smart Contract (Backend)**:
 
 
-## Documentation
+packages/hardhat/contracts/Splitwise.sol: Contém a lógica on-chain para armazenar dívidas e utilizadores.
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+**Frontend & Algoritmos**:
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
 
-## Contributing to Scaffold-ETH 2
+packages/nextjs/app/page.tsx: Contém a interface do utilizador e a lógica JavaScript crítica, incluindo o algoritmo BFS (Breadth-First Search) para deteção e resolução de ciclos.
 
-We welcome contributions to Scaffold-ETH 2!
+**Script de Deploy**:
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+packages/hardhat/deploy/00_deploy_your_contract.ts: Script configurado para fazer o deploy do contrato Splitwise.
+
+## Como Testar (Sanity Check)
+
+Para validar a resolução de ciclos conforme o enunciado:
+
+Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
+
+Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
+
+Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
+
+
+**Resultado Esperado**: O sistema deve detetar o ciclo, reduzir as dívidas localmente e, no final, todas as dívidas devem ser 0 (ou não aparecerem na lista), pois o ciclo foi resolvido.
+
+--- 
+
+Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas da Universidade da Beira Interior.
