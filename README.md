@@ -93,13 +93,13 @@ Os ficheiros principais modificados para este exercício encontram-se em:
 
 ## Como Testar (Sanity Check)
 
-- **1**. Para validar a resolução de ciclos conforme o enunciado:
+ **1**.  Para validar a resolução de ciclos conforme o enunciado:
 
-- **2**. Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
+ **2**.  Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
 
-- **3**. Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
+ **3**.  Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
 
-- **4**. Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
+ **4**.  Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
 
 
 **Resultado Esperado**: O sistema deve detetar o ciclo, reduzir as dívidas localmente e, no final, todas as dívidas devem ser 0 (ou não aparecerem na lista), pois o ciclo foi resolvido.
