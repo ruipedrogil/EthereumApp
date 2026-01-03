@@ -18,7 +18,6 @@ Esta aplicação implementa a lógica exigida para o controlo de IOUs (I Owe You
 - **Resolução de Ciclos (Loop Resolution)**: Lógica implementada no cliente (Frontend) que deteta ciclos de dívida (Ex: A → B → C → A) e resolve-os automaticamente antes de enviar para a blockchain, minimizando o número de transações e dívidas pendentes.
 
 
-
 - **Consultar Dívidas (lookup)**: Verifica quanto um devedor deve a um credor específico diretamente na Blockchain.
 
 
@@ -29,15 +28,13 @@ Esta aplicação implementa a lógica exigida para o controlo de IOUs (I Owe You
 
 ## Tech Stack
 
-Blockchain: Ethereum (Local Hardhat Network).
+- Blockchain: Ethereum (Local Hardhat Network).
 
+- Smart Contracts: Solidity (v0.8.17+).
 
-Smart Contracts: Solidity (v0.8.17+).
+- Frontend: NextJS, React, TypeScript e TailwindCSS (via Scaffold-ETH 2).
 
-
-Frontend: NextJS, React, TypeScript e TailwindCSS (via Scaffold-ETH 2).
-
-Interação com Blockchain: Wagmi, Viem e Ethers.js.
+- Interação com Blockchain: Wagmi, Viem e Ethers.js.
 
 ## Como Correr o Projeto (Quickstart)
 Siga os passos abaixo para iniciar o ambiente de desenvolvimento local:
@@ -68,7 +65,7 @@ yarn deploy --reset
 ```
 
 **4. Iniciar o Frontend (Terminal 3)**
-
+ 
 Inicia a aplicação web em React.
 
 ```
@@ -83,30 +80,30 @@ Os ficheiros principais modificados para este exercício encontram-se em:
 **Smart Contract (Backend)**:
 
 
-packages/hardhat/contracts/Splitwise.sol: Contém a lógica on-chain para armazenar dívidas e utilizadores.
+- packages/hardhat/contracts/Splitwise.sol: Contém a lógica on-chain para armazenar dívidas e utilizadores.
 
 **Frontend & Algoritmos**:
 
 
-packages/nextjs/app/page.tsx: Contém a interface do utilizador e a lógica JavaScript crítica, incluindo o algoritmo BFS (Breadth-First Search) para deteção e resolução de ciclos.
+- packages/nextjs/app/page.tsx: Contém a interface do utilizador e a lógica JavaScript crítica, incluindo o algoritmo BFS (Breadth-First Search) para deteção e resolução de ciclos.
 
 **Script de Deploy**:
 
-packages/hardhat/deploy/00_deploy_your_contract.ts: Script configurado para fazer o deploy do contrato Splitwise.
+- packages/hardhat/deploy/00_deploy_your_contract.ts: Script configurado para fazer o deploy do contrato Splitwise.
 
 ## Como Testar (Sanity Check)
 
-Para validar a resolução de ciclos conforme o enunciado:
+**1**. Para validar a resolução de ciclos conforme o enunciado:
 
-Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
+**2**. Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
 
-Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
+**3**. Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
 
-Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
+**4**. Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
 
 
 **Resultado Esperado**: O sistema deve detetar o ciclo, reduzir as dívidas localmente e, no final, todas as dívidas devem ser 0 (ou não aparecerem na lista), pois o ciclo foi resolvido.
 
 --- 
 
-Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas da Universidade da Beira Interior.
+*Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas da Universidade da Beira Interior.*
