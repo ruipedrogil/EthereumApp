@@ -8,6 +8,83 @@ import { useAccount } from "wagmi";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
+
+// Here is implemented the SPLITWISE LOGIC (CLIENT SIDE)
+
+// get all users
+async function getUsers(contract: any) {
+  return await contract.read.getAllUsers();
+}
+
+// BFS to find debt path
+async function bfs(contract: any, start: string, end: string) {
+  const queue: string[][] = [[start]];
+  const visited = new Set([start]);
+
+  while (queue.length > 0) {
+    const path = queue.shift()!;
+    const last = path[path.length - 1];
+
+    if (last === end) return path;
+
+    const users = await contract.read.getAllUsers();
+
+    for (const u of users) {
+      if (u === last) continue;  // avoids self-loop
+      const debt = await contract.read.lookup(last, u);
+      if (Number(debt) > 0 && !visited.has(u)) {
+        visited.add(u);
+        queue.push([...path, u]);
+      }
+    }
+  }
+
+  return null;
+}
+
+// get last activity timestamp
+async function getLastActive(contract: any, user: string) {
+  const ts = await contract.read.lastActive(user);
+  const timestamp = Number(ts);
+
+  if (timestamp === 0) {
+    return null;
+  }
+
+  return timestamp;
+}
+
+// add IOU with proper on-chain cycle resolution
+async function addIOU(contract: any, debtor: string, creditor: string, amount: number) {
+  const path = await bfs(contract, creditor, debtor);  // encontrar caminho creditor -> debtor baseado nas dívidas existentes
+
+  if (!path) {
+    return await contract.write.add_IOU([creditor, amount, []]);     // no cicle: empty cycle
+  }
+
+  // path: [creditor, ..., debtor]
+  // full cicle should be [debtor, creditor, ..., debtor]
+  const cycle = [debtor, ...path];
+
+  return await contract.write.add_IOU([creditor, amount, cycle]);
+}
+
+
+// calculate total owed
+async function getTotalOwed(contract: any, user: string) {
+  const users = await contract.read.getAllUsers();
+  let total = 0;
+
+  for (const u of users) {
+    const amount = await contract.read.lookup(user, u);
+    total += Number(amount);
+  }
+
+  return total;
+}
+
+
+
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();

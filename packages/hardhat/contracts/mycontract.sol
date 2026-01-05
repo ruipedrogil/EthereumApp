@@ -26,17 +26,51 @@ contract Splitwise {
     }
 
     // adds a debt (I Owe You (IOU)), msg.sender is the debtor.
-    function add_IOU(address creditor, uint32 amount) external {
+    // cycle: sequence of addresses forming a cycle starting and ending at msg.sender:
+    // [debtor, creditor, ..., debtor]
+    function add_IOU(address creditor, uint32 amount, address[] calldata cycle) external {
         require(msg.sender != creditor, "You cannot owe money to yourself");
         require(amount > 0, "The amount must be positive");
 
-        // debts are additive
+        // add the new debt
         debts[msg.sender][creditor] += amount;
 
         _updateUser(msg.sender);
         _updateUser(creditor);
 
         emit IouAdded(msg.sender, creditor, amount);
+
+        // if no cycle provided, nothing to resolve
+        if (cycle.length == 0) {
+            return;
+        }
+
+        // structural checks on the cycle
+        require(cycle.length >= 2, "Invalid cycle length");
+        require(cycle[0] == msg.sender, "Cycle must start at debtor");
+        require(cycle[cycle.length - 1] == msg.sender, "Cycle must end at debtor");
+
+        // find minimum edge weight along the cycle
+        uint32 minAmount = type(uint32).max;
+
+        for (uint256 i = 0; i < cycle.length - 1; i++) {
+            address from = cycle[i];
+            address to = cycle[i + 1];
+            uint32 debt = debts[from][to];
+            require(debt > 0, "Invalid cycle edge with zero debt");
+            if (debt < minAmount) {
+                minAmount = debt;
+            }
+        }
+
+        // resolve: subtract minAmount from every edge in the cycle
+        for (uint256 i = 0; i < cycle.length - 1; i++) {
+            address from = cycle[i];
+            address to = cycle[i + 1];
+            debts[from][to] -= minAmount;
+        }
+
+        emit CycleResolved(msg.sender, minAmount);
     }
 
     // internal helper to track new users and update timestamps
