@@ -14,6 +14,7 @@ contract Splitwise {
     mapping(address => uint256) public lastActive;
 
     event IouAdded(address indexed debtor, address indexed creditor, uint32 amount);
+    event CycleResolved(address indexed starter, uint32 reducedBy);
 
     // returns the amount that the debtor owes to the creditor
     function lookup(address debtor, address creditor) external view returns (uint32) {
@@ -71,6 +72,8 @@ contract Splitwise {
         }
 
         emit CycleResolved(msg.sender, minAmount);
+        
+        emit CycleResolved(msg.sender, minAmount);       
     }
 
     // internal helper to track new users and update timestamps
