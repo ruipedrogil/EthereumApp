@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import { useScaffoldContract, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
-import { findCycleAndResolve } from "~~/utils/splitwise/cycleDetection";
 
 interface AddIOUFormProps {
   onIOUAdded?: () => void;
@@ -17,31 +16,25 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { writeContractAsync } = useScaffoldWriteContract("Splitwise");
-  const publicClient = usePublicClient();
 
+  // Precisamos disto para ler o estado DEPOIS da transação
+  const publicClient = usePublicClient();
   const { data: contract } = useScaffoldContract({
     contractName: "Splitwise",
   });
 
-  const { data: users } = useScaffoldReadContract({
-    contractName: "Splitwise",
-    functionName: "getAllUsers",
-  });
-
-  // Função auxiliar para ler dívidas (com tratamento de erros)
-  const getDebtFromContract = async (debtor: string, creditor: string): Promise<number> => {
+  // Função auxiliar para verificar se a dívida desapareceu
+  const checkDebtStatus = async (debtor: string, creditor: string): Promise<number> => {
     if (!contract || !publicClient) return 0;
     try {
       const result = await publicClient.readContract({
         address: contract.address,
         abi: contract.abi,
         functionName: "lookup",
-        // IMPORTANTE: Normalizar endereços também na leitura
-        args: [debtor.toLowerCase() as `0x${string}`, creditor.toLowerCase() as `0x${string}`],
+        args: [debtor as `0x${string}`, creditor as `0x${string}`],
       });
       return Number(result || 0n);
     } catch {
-      // Ignorar erros de leitura para não bloquear o fluxo
       return 0;
     }
   };
@@ -50,13 +43,12 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
     e.preventDefault();
 
     if (!creditorAddress || !amount || !connectedAddress) {
-      notification.error("Preencha todos os campos e conecte a carteira");
+      notification.error("Preencha todos os campos");
       return;
     }
 
-    // Transforma tudo em letras pequenas para garantir que 0xABC == 0xabc
-    const safeMe = connectedAddress.toLowerCase();
     const safeCreditor = creditorAddress.toLowerCase();
+    const safeMe = connectedAddress.toLowerCase();
 
     if (safeCreditor === safeMe) {
       notification.error("Não pode dever a si mesmo!");
@@ -68,68 +60,60 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
     try {
       const amountValue = parseInt(amount);
       if (amountValue <= 0) {
-        notification.error("Valor deve ser maior que zero");
+        notification.error("Valor inválido");
         setIsProcessing(false);
         return;
       }
 
-      console.log("INÍCIO DEBUG BFS");
-      console.log("1. Eu sou (Devedor):", safeMe);
-      console.log("2. Vou pagar a (Credor):", safeCreditor);
+      console.log("A iniciar transação");
 
-      notification.info("A verificar ciclos");
-
-      // Procura ciclo usando endereços normalizados
-      const cycleInfo = await findCycleAndResolve(
-        safeCreditor, // Start: Credor
-        safeMe, // End: Eu
-        amountValue,
-        (users as string[]) || [],
-        getDebtFromContract,
-      );
-
-      const pathArg: string[] = [];
-
-      if (cycleInfo.hasCycle && cycleInfo.path) {
-        console.log("Ciclo detetado! Caminho:", cycleInfo.path);
-
-        notification.warning(`Ciclo detetado! A limpar dívidas`, { duration: 4000 });
-
-        // CONSTRUÇÃO DO CAMINHO
-        // Garante que o primeiro e o último são exatamente 'safeMe'
-        pathArg.push(safeMe);
-
-        for (let i = 0; i < cycleInfo.path.length - 1; i++) {
-          // Normalizar cada passo do caminho também
-          pathArg.push(cycleInfo.path[i].toLowerCase());
-        }
-
-        pathArg.push(safeMe);
-
-        console.log("Caminho final (Tudo minúsculas):", pathArg);
-      } else {
-        console.log("Nenhum ciclo encontrado.");
-      }
+      // Ler dívida antes (normalmente é 0, mas se já existisse é importante)
+      const debtBefore = await checkDebtStatus(safeMe, safeCreditor);
 
       // Enviar transação
       await writeContractAsync({
-        functionName: "add_IOU",
-        args: [safeCreditor as `0x${string}`, amountValue, pathArg as `0x${string}`[]],
+        functionName: "iou",
+        args: [safeMe as `0x${string}`, safeCreditor as `0x${string}`, amountValue],
       });
 
-      if (pathArg.length > 0) {
-        notification.success("Ciclo resolvido e dívida anulada! 🎉");
+      // Aguardar atualização da blockchain
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Ler dívida depois
+      const debtAfter = await checkDebtStatus(safeMe, safeCreditor);
+
+      // O valor que eu esperava dever seria: (O que eu devia antes + O que enviei agora)
+      const expectedDebt = debtBefore + amountValue;
+
+      console.log(`Antes: ${debtBefore} | Enviei: ${amountValue} | Esperei: ${expectedDebt} | Real: ${debtAfter}`);
+
+      if (debtAfter < expectedDebt) {
+        // Se devo menos do que a soma direta, houve corte
+        const savedAmount = expectedDebt - debtAfter;
+
+        notification.success(
+          <div className="flex flex-col">
+            <span className="font-bold text-lg">🪄 CICLO DETETADO!</span>
+            <span>
+              {debtAfter === 0
+                ? "A dívida foi totalmente anulada!"
+                : `A dívida foi reduzida em ${savedAmount}. Restam ${debtAfter}.`}
+            </span>
+          </div>,
+          { duration: 8000 },
+        );
       } else {
-        notification.success("Dívida registada!");
+        // Comportamento normal (sem ciclo)
+        notification.success("Dívida registada com sucesso!");
       }
 
       setCreditorAddress("");
       setAmount("");
 
       if (onIOUAdded) setTimeout(onIOUAdded, 1000);
-    } catch (error: any) {
-      console.error("Erro:", error);
-      notification.error("Erro: " + (error.message || "Falha na transação"));
+    } catch (e: any) {
+      console.error("Erro:", e);
+      notification.error("Falha na transação");
     } finally {
       setIsProcessing(false);
     }
@@ -138,7 +122,8 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
   return (
     <div className="card bg-base-100 shadow-xl border border-base-200">
       <div className="card-body">
-        <h2 className="card-title">📝 Adicionar Dívida (IOU)</h2>
+        <h2 className="card-title">📝 Adicionar Dívida</h2>
+
         <form onSubmit={handleAddIOU} className="space-y-4">
           <div className="form-control">
             <label className="label">
@@ -173,9 +158,9 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
           <button
             type="submit"
             className={`btn btn-primary w-full ${isProcessing ? "loading" : ""}`}
-            disabled={isProcessing || !contract}
+            disabled={isProcessing}
           >
-            {isProcessing ? "A processar" : "Enviar Dívida"}
+            {isProcessing ? "A processar..." : "Enviar Dívida"}
           </button>
         </form>
       </div>

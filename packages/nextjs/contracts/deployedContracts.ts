@@ -10,95 +10,9 @@ const deployedContracts = {
       address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint32",
-              name: "amountReduced",
-              type: "uint32",
-            },
-          ],
-          name: "CycleResolved",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "debtor",
-              type: "address",
-            },
-            {
-              indexed: true,
-              internalType: "address",
-              name: "creditor",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint32",
-              name: "amount",
-              type: "uint32",
-            },
-          ],
-          name: "IouAdded",
-          type: "event",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "creditor",
-              type: "address",
-            },
-            {
-              internalType: "uint32",
-              name: "amount",
-              type: "uint32",
-            },
-            {
-              internalType: "address[]",
-              name: "path",
-              type: "address[]",
-            },
-          ],
-          name: "add_IOU",
-          outputs: [],
+          inputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "debts",
-          outputs: [
-            {
-              internalType: "uint32",
-              name: "",
-              type: "uint32",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
+          type: "constructor",
         },
         {
           inputs: [],
@@ -117,38 +31,23 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "iAddress",
               type: "address",
             },
-          ],
-          name: "isUser",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "uAddress",
               type: "address",
             },
-          ],
-          name: "lastActive",
-          outputs: [
             {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
+              internalType: "uint32",
+              name: "amount",
+              type: "uint32",
             },
           ],
-          stateMutability: "view",
+          name: "iou",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -168,8 +67,40 @@ const deployedContracts = {
           outputs: [
             {
               internalType: "uint32",
-              name: "",
+              name: "ret",
               type: "uint32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "participant",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
             },
           ],
           stateMutability: "view",
@@ -183,7 +114,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "users",
+          name: "participantList",
           outputs: [
             {
               internalType: "address",
