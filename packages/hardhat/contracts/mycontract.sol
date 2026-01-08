@@ -6,7 +6,7 @@ contract Splitwise {
     address[] public participantList;
     mapping(address => bool) public participant;
 
-    // Estrutura de lista de adjacência (Quem deve a quem)
+    // Estrutura de lista de quem deve a quem
     mapping(address => Owing[]) owingData;
 
     struct Owing {
@@ -39,14 +39,13 @@ contract Splitwise {
         participantList.push(input);
     }
 
-    // Função principal (MUDOU NOME DE add_IOU para iou)
-    // iAddress = Devedor (Eu), uAddress = Credor (Tu)
+    // iAddress = devedor (Eu), uAddress = credor (Tu)
     function iou(address iAddress, address uAddress, uint32 amount) public {
         require(iAddress != uAddress, "You can't owe yourself!");
         setParticipant(iAddress);
         setParticipant(uAddress);
 
-        // 1. Otimização: Se tu já me deves, abater essa dívida primeiro
+        // se alguem está a dever a alguem já, abater essa dívida primeiro
         for (uint i = 0; i < owingData[uAddress].length; i++) {
             Owing storage ourOwingData = owingData[uAddress][i];
             if (ourOwingData.owingAddress == iAddress) {
@@ -63,7 +62,7 @@ contract Splitwise {
             }
         }
 
-        // 2. Adicionar ou Atualizar a nova dívida
+        // Adicionar ou atualizar a nova dívida
         bool found = false;
         for (uint i = 0; i < owingData[iAddress].length; i++) {
             if (owingData[iAddress][i].owingAddress == uAddress) {
@@ -76,7 +75,7 @@ contract Splitwise {
             owingData[iAddress].push(Owing(amount, uAddress));
         }
         
-        // 3. Resolver ciclos (A magia pesada)
+        // Resolver os loops 
         resolveDebtLoops();
     }
 
@@ -108,7 +107,7 @@ contract Splitwise {
 
             if (debt == 0) continue;
 
-            // Encontrou o ciclo!
+            // Encontrou o ciclo
             if (next == start && path.length > 0) {
                 return resolveCycleNew(path, debts, debt, current);
             }
@@ -120,7 +119,7 @@ contract Splitwise {
             }
             if (inPath) continue;
 
-            // Continuar a busca (DFS Recursivo)
+            // Continuar a busca com DFS Recursivo
             address[] memory newPath = new address[](path.length + 1);
             uint32[] memory newDebts = new uint32[](debts.length + 1);
             for (uint j = 0; j < path.length; j++) {
