@@ -15,6 +15,54 @@ const deployedContracts = {
           type: "constructor",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "allUsers",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "debtGraph",
+          outputs: [
+            {
+              internalType: "uint32",
+              name: "value",
+              type: "uint32",
+            },
+            {
+              internalType: "address",
+              name: "creditor",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "getAllUsers",
           outputs: [
@@ -31,12 +79,12 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "iAddress",
+              name: "debtor",
               type: "address",
             },
             {
               internalType: "address",
-              name: "uAddress",
+              name: "creditor",
               type: "address",
             },
             {
@@ -67,7 +115,7 @@ const deployedContracts = {
           outputs: [
             {
               internalType: "uint32",
-              name: "ret",
+              name: "",
               type: "uint32",
             },
           ],
@@ -95,31 +143,12 @@ const deployedContracts = {
               type: "address",
             },
           ],
-          name: "participant",
+          name: "userExists",
           outputs: [
             {
               internalType: "bool",
               name: "",
               type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "participantList",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
             },
           ],
           stateMutability: "view",
