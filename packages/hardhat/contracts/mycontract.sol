@@ -8,8 +8,7 @@ contract Splitwise {
     mapping(address => uint256) public lastActive;
 
     event IouAdded(address indexed debtor, address indexed creditor, uint32 amount);
-    // Novo evento para sabermos se o ciclo correu
-    event CycleResolved(address indexed user, uint32 amountReduced, uint pathLength);
+    event CycleResolved(address indexed user, uint32 amountReduced);
 
     function lookup(address debtor, address creditor) external view returns (uint32) {
         return debts[debtor][creditor];
@@ -19,44 +18,48 @@ contract Splitwise {
         return users;
     }
 
-    // Função que recebe o Caminho (Path)
+    // Função (3 Argumentos)
     function add_IOU(address creditor, uint32 amount, address[] calldata path) external {
         require(msg.sender != creditor, "Nao pode dever a si mesmo");
         require(amount > 0, "O valor tem de ser positivo");
 
-        // 1. Adiciona a dívida PRIMEIRO
+        // Regista a nova dívida (Soma)
         debts[msg.sender][creditor] += amount;
         _updateUser(msg.sender);
         _updateUser(creditor);
 
         emit IouAdded(msg.sender, creditor, amount);
 
-        // 2. Se o site mandou um caminho, TENTA resolver
+        // Se houver um ciclo, resolve-o AGORA (Subtrai)
         if (path.length > 0) {
             _resolveCycle(path);
         }
     }
 
     function _resolveCycle(address[] memory path) internal {
-        // Validação básica
-        require(path.length >= 2, "Caminho muito curto");
-        
-        // Calcular o mínimo
+        require(path.length >= 2, "Caminho invalido");
+
+        // Descobrir o valor mínimo no ciclo
         uint32 minAmount = type(uint32).max;
         
-        // Percorre o ciclo para achar o valor mais baixo
         for (uint i = 0; i < path.length - 1; i++) {
-            uint32 d = debts[path[i]][path[i+1]];
-            if (d < minAmount) minAmount = d;
+            address from = path[i];
+            address to = path[i+1];
+            uint32 debt = debts[from][to];
+            
+            if (debt < minAmount) {
+                minAmount = debt;
+            }
         }
 
-        // Se o mínimo for válido, subtrai a toda a gente
+        // Subtrair esse valor a toda a gente
         if (minAmount > 0 && minAmount != type(uint32).max) {
             for (uint i = 0; i < path.length - 1; i++) {
-                debts[path[i]][path[i+1]] -= minAmount;
+                address from = path[i];
+                address to = path[i+1];
+                debts[from][to] -= minAmount;
             }
-            // Emite evento a confirmar a redução
-            emit CycleResolved(msg.sender, minAmount, path.length);
+            emit CycleResolved(msg.sender, minAmount);
         }
     }
 

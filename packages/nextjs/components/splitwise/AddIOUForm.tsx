@@ -16,7 +16,6 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Nome correto do contrato: "Splitwise"
   const { writeContractAsync } = useScaffoldWriteContract("Splitwise");
   const publicClient = usePublicClient();
 
@@ -29,6 +28,7 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
     functionName: "getAllUsers",
   });
 
+  // Função auxiliar para ler dívidas (com tratamento de erros)
   const getDebtFromContract = async (debtor: string, creditor: string): Promise<number> => {
     if (!contract || !publicClient) return 0;
     try {
@@ -36,11 +36,12 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
         address: contract.address,
         abi: contract.abi,
         functionName: "lookup",
-        args: [debtor as `0x${string}`, creditor as `0x${string}`],
+        // IMPORTANTE: Normalizar endereços também na leitura
+        args: [debtor.toLowerCase() as `0x${string}`, creditor.toLowerCase() as `0x${string}`],
       });
       return Number(result || 0n);
-    } catch (error) {
-      console.error(`Erro ao ler dívida:`, error);
+    } catch {
+      // Ignorar erros de leitura para não bloquear o fluxo
       return 0;
     }
   };
@@ -53,7 +54,12 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
       return;
     }
 
-    if (creditorAddress.toLowerCase() === connectedAddress.toLowerCase()) {
+    // NORMALIZAÇÃO CRÍTICA 🛡️
+    // Transforma tudo em letras pequenas para garantir que 0xABC == 0xabc
+    const safeMe = connectedAddress.toLowerCase();
+    const safeCreditor = creditorAddress.toLowerCase();
+
+    if (safeCreditor === safeMe) {
       notification.error("Não pode dever a si mesmo!");
       return;
     }
@@ -68,48 +74,52 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
         return;
       }
 
-      notification.info("🔍 A verificar ciclos...");
+      console.log("--- INÍCIO DEBUG BFS (NORMALIZADO) ---");
+      console.log("1. Eu sou (Devedor):", safeMe);
+      console.log("2. Vou pagar a (Credor):", safeCreditor);
 
-      // === CORREÇÃO CRÍTICA DE LÓGICA ===
-      // Para haver um ciclo quando EU pago ao CREDOR, tem de existir
-      // um caminho de dívida que venha do CREDOR até MIM.
-      // Ex: Se pago à Alice, e a Alice (indiretamente) deve-me a mim, fecha o ciclo.
+      notification.info("A verificar ciclos...");
 
+      // Procura ciclo usando endereços normalizados
       const cycleInfo = await findCycleAndResolve(
-        creditorAddress, // START: O Credor (ex: Alice)
-        connectedAddress, // END:   Eu (ex: Carol)
+        safeCreditor, // Start: Credor
+        safeMe, // End: Eu
         amountValue,
         (users as string[]) || [],
         getDebtFromContract,
       );
 
-      let pathArg: string[] = [];
+      const pathArg: string[] = [];
 
       if (cycleInfo.hasCycle && cycleInfo.path) {
-        notification.warning(`Ciclo detetado! A resolver`, { duration: 4000 });
+        console.log("Ciclo detetado! Caminho:", cycleInfo.path);
 
-        // CONSTRUÇÃO DO CICLO PARA O CONTRATO
-        // O BFS devolveu o caminho [Alice, Bob, Carol].
-        // O ciclo completo é: Eu -> Alice -> Bob -> Eu.
-        // pathArg = [Carol, Alice, Bob, Carol]
+        notification.warning(`Ciclo detetado! A limpar dívidas...`, { duration: 4000 });
 
-        pathArg = [connectedAddress, ...cycleInfo.path];
+        // CONSTRUÇÃO DO CAMINHO
+        // Garante que o primeiro e o último são exatamente 'safeMe'
+        pathArg.push(safeMe);
+
+        for (let i = 0; i < cycleInfo.path.length - 1; i++) {
+          // Normalizar cada passo do caminho também
+          pathArg.push(cycleInfo.path[i].toLowerCase());
+        }
+
+        pathArg.push(safeMe);
+
+        console.log("CAMINHO FINAL (Tudo minúsculas):", pathArg);
+      } else {
+        console.log("Nenhum ciclo encontrado.");
       }
 
-      console.log("Enviar transação:", {
-        creditor: creditorAddress,
-        amount: amountValue,
-        path: pathArg,
-      });
-
-      // Enviar transação (usando number em vez de BigInt para o amount)
+      // Enviar transação
       await writeContractAsync({
         functionName: "add_IOU",
-        args: [creditorAddress as `0x${string}`, amountValue, pathArg as `0x${string}`[]],
+        args: [safeCreditor as `0x${string}`, amountValue, pathArg as `0x${string}`[]],
       });
 
       if (pathArg.length > 0) {
-        notification.success("Ciclo resolvido e dívida anulada!");
+        notification.success("Ciclo resolvido e dívida anulada! 🎉");
       } else {
         notification.success("Dívida registada!");
       }

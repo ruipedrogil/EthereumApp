@@ -1,129 +1,58 @@
-/**
- * Algoritmo BFS (Breadth-First Search) para detecção de ciclos em grafos de dívidas
- */
-
-interface DebtUpdate {
-  debtor: string;
-  creditor: string;
-  amount: number;
-}
-
-interface CycleResult {
-  hasCycle: boolean;
-  path?: string[];
-  minAmount?: number;
-  updates?: DebtUpdate[];
-}
-
-/**
- * Encontra um caminho entre dois nós usando BFS
- */
-async function findPath(
-  start: string,
-  end: string,
-  users: string[],
+export async function findCycleAndResolve(
+  me: string,
+  creditor: string,
+  newAmount: number,
+  allUsers: string[],
   getDebt: (debtor: string, creditor: string) => Promise<number>,
-): Promise<string[] | null> {
-  const queue: { node: string; path: string[] }[] = [{ node: start, path: [start] }];
+): Promise<{ hasCycle: boolean; path?: string[]; minAmount?: number; updates?: any[] }> {
+  // Normalizar endereços
+  const startNode = creditor.toLowerCase();
+  const targetNode = me.toLowerCase();
+
+  // === CORREÇÃO AQUI ===
+  // Se a lista for nula ou vazia, NÃO É ERRO. É apenas o início do sistema.
+  // Retornamos false (sem ciclo) e deixamos a transação prosseguir.
+  if (!allUsers || allUsers.length === 0) {
+    console.warn("Lista de utilizadores vazia (Normal na 1ª transação). A prosseguir sem verificação de ciclo.");
+    // Não mostramos notification.error para não bloquear o utilizador
+    return { hasCycle: false };
+  }
+
+  const queue: string[][] = [[startNode]];
   const visited = new Set<string>();
+  visited.add(startNode);
 
   while (queue.length > 0) {
-    const { node, path } = queue.shift()!;
+    const path = queue.shift()!;
+    const currentNode = path[path.length - 1];
 
-    if (node.toLowerCase() === end.toLowerCase()) {
-      return path;
+    if (currentNode === targetNode) {
+      console.log("✅ CICLO ENCONTRADO:", path);
+
+      let minAmount = newAmount;
+      for (let i = 0; i < path.length - 1; i++) {
+        const u = path[i];
+        const v = path[i + 1];
+        const debt = await getDebt(u, v);
+        if (debt < minAmount) minAmount = debt;
+      }
+
+      return { hasCycle: true, path, minAmount, updates: [] };
     }
 
-    if (visited.has(node.toLowerCase())) {
-      continue;
-    }
+    for (const neighbor of allUsers) {
+      const neighborLower = neighbor.toLowerCase();
 
-    visited.add(node.toLowerCase());
+      if (neighborLower !== currentNode && !visited.has(neighborLower)) {
+        const debt = await getDebt(currentNode, neighborLower);
 
-    // Verificar todos os possíveis credores
-    for (const user of users) {
-      if (user.toLowerCase() === node.toLowerCase()) continue;
-
-      const debt = await getDebt(node, user);
-      if (debt > 0) {
-        queue.push({
-          node: user,
-          path: [...path, user],
-        });
+        if (debt > 0) {
+          visited.add(neighborLower);
+          queue.push([...path, neighborLower]);
+        }
       }
     }
   }
 
-  return null;
-}
-
-/**
- * Detecta e resolve ciclos de dívida
- */
-export async function findCycleAndResolve(
-  debtor: string,
-  creditor: string,
-  amount: number,
-  users: string[],
-  getDebt: (debtor: string, creditor: string) => Promise<number>,
-): Promise<CycleResult> {
-  // Verificar se adicionar esta dívida cria um ciclo
-  // Um ciclo existe se há um caminho do credor de volta ao devedor
-  const path = await findPath(creditor, debtor, users, getDebt);
-
-  if (!path) {
-    // Não há ciclo, retornar dívida original
-    return {
-      hasCycle: false,
-      updates: [{ debtor, creditor, amount }],
-    };
-  }
-
-  // Ciclo detectado! Caminho completo: debtor -> ...path... -> debtor
-  const cyclePath = [debtor, ...path];
-
-  // Calcular o valor mínimo no ciclo
-  const debtsInCycle: number[] = [];
-
-  for (let i = 0; i < cyclePath.length - 1; i++) {
-    const currentDebtor = cyclePath[i];
-    const currentCreditor = cyclePath[i + 1];
-    const debt = await getDebt(currentDebtor, currentCreditor);
-    debtsInCycle.push(debt);
-  }
-
-  // Adicionar a nova dívida ao ciclo
-  debtsInCycle.push(amount);
-
-  const minAmount = Math.min(...debtsInCycle);
-
-  // Gerar atualizações para resolver o ciclo
-  const updates: DebtUpdate[] = [];
-
-  for (let i = 0; i < cyclePath.length - 1; i++) {
-    const currentDebtor = cyclePath[i];
-    const currentCreditor = cyclePath[i + 1];
-    const currentDebt = await getDebt(currentDebtor, currentCreditor);
-    const newAmount = currentDebt - minAmount;
-
-    updates.push({
-      debtor: currentDebtor,
-      creditor: currentCreditor,
-      amount: newAmount,
-    });
-  }
-
-  // Adicionar a nova dívida reduzida
-  updates.push({
-    debtor,
-    creditor,
-    amount: amount - minAmount,
-  });
-
-  return {
-    hasCycle: true,
-    path: cyclePath,
-    minAmount,
-    updates,
-  };
+  return { hasCycle: false };
 }

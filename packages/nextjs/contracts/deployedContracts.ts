@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     Splitwise: {
-      address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
           anonymous: false,
@@ -15,13 +15,13 @@ const deployedContracts = {
             {
               indexed: true,
               internalType: "address",
-              name: "debtor",
+              name: "user",
               type: "address",
             },
             {
               indexed: false,
               internalType: "uint32",
-              name: "amountResolved",
+              name: "amountReduced",
               type: "uint32",
             },
           ],
@@ -196,7 +196,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 30,
+      deployedOnBlock: 1,
     },
   },
 } as const;
