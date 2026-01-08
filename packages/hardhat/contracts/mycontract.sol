@@ -3,15 +3,15 @@ pragma solidity ^0.8.17;
 
 contract Splitwise {
     address public owner;
-    address[] public participantList;
-    mapping(address => bool) public participant;
+    address[] public allUsers;
+    mapping(address => bool) public userExists;
 
-    // Estrutura de lista de quem deve a quem
-    mapping(address => Owing[]) owingData;
+    // Adjacency list for the debt graph
+    mapping(address => DebtNode[]) public debtGraph;
 
-    struct Owing {
-        uint32 amount;
-        address owingAddress;
+    struct DebtNode {
+        uint32 value;
+        address creditor;
     }
 
     constructor() {
@@ -19,145 +19,168 @@ contract Splitwise {
     }
 
     function getAllUsers() public view returns (address[] memory) {
-        return participantList;
+        return allUsers;
     }
 
-    // Função de leitura compatível com o teu frontend
-    function lookup(address debtor, address creditor) public view returns (uint32 ret) {
-        Owing[] memory result = owingData[debtor];
-        for (uint i = 0; i < result.length; i++) {
-            if (result[i].owingAddress == creditor) {
-                return result[i].amount;
+    function lookup(address debtor, address creditor) public view returns (uint32) {
+        DebtNode[] memory edges = debtGraph[debtor];
+        for (uint i = 0; i < edges.length; i++) {
+            if (edges[i].creditor == creditor) {
+                return edges[i].value;
             }
         }
         return 0;
     }
 
-    function setParticipant(address input) private {
-        if (participant[input]) return;
-        participant[input] = true;
-        participantList.push(input);
+    function _registerUser(address user) private {
+        if (!userExists[user]) {
+            userExists[user] = true;
+            allUsers.push(user);
+        }
     }
 
-    // iAddress = devedor (Eu), uAddress = credor (Tu)
-    function iou(address iAddress, address uAddress, uint32 amount) public {
-        require(iAddress != uAddress, "You can't owe yourself!");
-        setParticipant(iAddress);
-        setParticipant(uAddress);
+    function iou(address debtor, address creditor, uint32 amount) public {
+        require(debtor != creditor, "You can't owe yourself!");
+        require(amount > 0, "Amount must be positive");
 
-        // se alguem está a dever a alguem já, abater essa dívida primeiro
-        for (uint i = 0; i < owingData[uAddress].length; i++) {
-            Owing storage ourOwingData = owingData[uAddress][i];
-            if (ourOwingData.owingAddress == iAddress) {
-                if (ourOwingData.amount > amount) {
-                    ourOwingData.amount -= amount;
+        _registerUser(debtor);
+        _registerUser(creditor);
+
+        // Check if they owe us first. If yes, then reduce the amount (Netting)
+        DebtNode[] storage creditorDebts = debtGraph[creditor];
+        for (uint i = 0; i < creditorDebts.length; i++) {
+            if (creditorDebts[i].creditor == debtor) {
+                if (creditorDebts[i].value > amount) {
+                    creditorDebts[i].value -= amount;
                     return;
-                } else if (ourOwingData.amount < amount) {
-                    amount -= ourOwingData.amount;
-                    delete owingData[uAddress][i]; // Apaga a dívida inversa
+                } else if (creditorDebts[i].value < amount) {
+                    amount -= creditorDebts[i].value;
+                    delete debtGraph[creditor][i]; 
                 } else {
-                    delete owingData[uAddress][i];
+                    delete debtGraph[creditor][i];
                     return;
                 }
             }
         }
 
-        // Adicionar ou atualizar a nova dívida
-        bool found = false;
-        for (uint i = 0; i < owingData[iAddress].length; i++) {
-            if (owingData[iAddress][i].owingAddress == uAddress) {
-                owingData[iAddress][i].amount += amount;
-                found = true;
+        // Add or update the new debt
+        bool exists = false;
+        DebtNode[] storage debtorDebts = debtGraph[debtor];
+        for (uint i = 0; i < debtorDebts.length; i++) {
+            if (debtorDebts[i].creditor == creditor) {
+                debtorDebts[i].value += amount;
+                exists = true;
                 break;
             }
         }
-        if (!found) {
-            owingData[iAddress].push(Owing(amount, uAddress));
+        if (!exists) {
+            debtGraph[debtor].push(DebtNode(amount, creditor));
         }
+
+        // Resolve debt loops
+        _processGraphCycles();
+    }
+
+    function _processGraphCycles() private {
+        uint totalNodes = allUsers.length;
         
-        // Resolver os loops 
-        resolveDebtLoops();
-    }
-
-    function resolveDebtLoops() private {
-        // Tenta resolver múltiplas vezes para garantir limpeza total
-        for (uint iter = 0; iter < participantList.length; iter++) {
-            bool foundCycle = false;
-            for (uint start = 0; start < participantList.length; start++) {
-                address startAddr = participantList[start];
-                // Passamos arrays vazios iniciais
-                uint32 minDebt = findAndResolveCycle(startAddr, startAddr, new address[](0), new uint32[](0));
-                if (minDebt > 0) foundCycle = true;
+        // Try to resolve cycles multiple times
+        for (uint i = 0; i < totalNodes; i++) {
+            bool cycleDetected = false;
+            for (uint j = 0; j < totalNodes; j++) {
+                address startNode = allUsers[j];
+                uint32 reduced = _depthFirstSearch(startNode, startNode, new address[](0), new uint32[](0));
+                if (reduced > 0) {
+                    cycleDetected = true;
+                }
             }
-            if (!foundCycle) break;
+            if (!cycleDetected) break;
         }
     }
 
-    function findAndResolveCycle(
-        address current,
-        address start,
-        address[] memory path,
-        uint32[] memory debts
+    function _depthFirstSearch(
+        address currentNode,
+        address targetNode,
+        address[] memory visitedPath,
+        uint32[] memory pathWeights
     ) private returns (uint32) {
-        Owing[] storage currentDebts = owingData[current];
+        DebtNode[] storage edges = debtGraph[currentNode];
 
-        for (uint i = 0; i < currentDebts.length; i++) {
-            address next = currentDebts[i].owingAddress;
-            uint32 debt = currentDebts[i].amount;
+        for (uint i = 0; i < edges.length; i++) {
+            address neighbor = edges[i].creditor;
+            uint32 weight = edges[i].value;
 
-            if (debt == 0) continue;
+            if (weight == 0) continue;
 
-            // Encontrou o ciclo
-            if (next == start && path.length > 0) {
-                return resolveCycleNew(path, debts, debt, current);
+            // Cycle found
+            if (neighbor == targetNode && visitedPath.length > 0) {
+                return _reduceCycle(visitedPath, pathWeights, weight, currentNode);
             }
 
-            // Evitar loops infinitos na recursão
-            bool inPath = false;
-            for (uint j = 0; j < path.length; j++) {
-                if (path[j] == next) inPath = true;
+            // Check if already in path to avoid infinite loops
+            bool alreadyVisited = false;
+            for (uint k = 0; k < visitedPath.length; k++) {
+                if (visitedPath[k] == neighbor) {
+                    alreadyVisited = true;
+                    break;
+                }
             }
-            if (inPath) continue;
+            if (alreadyVisited) continue;
 
-            // Continuar a busca com DFS Recursivo
-            address[] memory newPath = new address[](path.length + 1);
-            uint32[] memory newDebts = new uint32[](debts.length + 1);
-            for (uint j = 0; j < path.length; j++) {
-                newPath[j] = path[j];
-                newDebts[j] = debts[j];
+            // Continue DFS
+            address[] memory nextPath = new address[](visitedPath.length + 1);
+            uint32[] memory nextWeights = new uint32[](pathWeights.length + 1);
+            
+            for (uint k = 0; k < visitedPath.length; k++) {
+                nextPath[k] = visitedPath[k];
+                nextWeights[k] = pathWeights[k];
             }
-            newPath[path.length] = current;
-            newDebts[debts.length] = debt;
+            nextPath[visitedPath.length] = currentNode;
+            nextWeights[pathWeights.length] = weight;
 
-            uint32 result = findAndResolveCycle(next, start, newPath, newDebts);
+            uint32 result = _depthFirstSearch(neighbor, targetNode, nextPath, nextWeights);
             if (result > 0) return result;
         }
+
         return 0;
     }
 
-    function resolveCycleNew(address[] memory path, uint32[] memory debts, uint32 lastDebt, address lastNode) private returns (uint32) {
-        uint32 minDebt = lastDebt;
-        for (uint i = 0; i < debts.length; i++) {
-            if (debts[i] > 0 && debts[i] < minDebt) minDebt = debts[i];
+    function _reduceCycle(
+        address[] memory path, 
+        uint32[] memory weights, 
+        uint32 closingWeight, 
+        address closingNode
+    ) private returns (uint32) {
+        // Find minimum flow
+        uint32 minFlow = closingWeight;
+        for (uint i = 0; i < weights.length; i++) {
+            if (weights[i] > 0 && weights[i] < minFlow) {
+                minFlow = weights[i];
+            }
         }
 
-        removeOwing(lastNode, path[0], minDebt);
+        // Reduce edges
+        _updateEdge(closingNode, path[0], minFlow);
         for (uint i = 0; i < path.length - 1; i++) {
-            removeOwing(path[i], path[i+1], minDebt);
+            _updateEdge(path[i], path[i+1], minFlow);
         }
-        if (path.length > 0) removeOwing(path[path.length - 1], lastNode, minDebt);
+        if (path.length > 0) {
+            _updateEdge(path[path.length - 1], closingNode, minFlow);
+        }
 
-        return minDebt;
+        return minFlow;
     }
 
-    function removeOwing(address debtor, address creditor, uint32 amount) private {
-        for (uint i = 0; i < owingData[debtor].length; i++) {
-            if (owingData[debtor][i].owingAddress == creditor) {
-                if (owingData[debtor][i].amount <= amount) {
-                    owingData[debtor][i].amount = 0;
+    function _updateEdge(address from, address to, uint32 amountToReduce) private {
+        DebtNode[] storage edges = debtGraph[from];
+        for (uint i = 0; i < edges.length; i++) {
+            if (edges[i].creditor == to) {
+                if (edges[i].value <= amountToReduce) {
+                    edges[i].value = 0; 
                 } else {
-                    owingData[debtor][i].amount -= amount;
+                    edges[i].value -= amountToReduce; 
                 }
+                return;
             }
         }
     }
