@@ -30,7 +30,7 @@ contract Splitwise {
 
         emit IouAdded(msg.sender, creditor, amount);
 
-        // Se houver um ciclo, resolve-o AGORA (Subtrai)
+        // Se houver um ciclo, resolve-o (Subtrai)
         if (path.length > 0) {
             _resolveCycle(path);
         }

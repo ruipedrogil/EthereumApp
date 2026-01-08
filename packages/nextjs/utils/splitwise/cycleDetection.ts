@@ -9,7 +9,6 @@ export async function findCycleAndResolve(
   const startNode = creditor.toLowerCase();
   const targetNode = me.toLowerCase();
 
-  // === CORREÇÃO AQUI ===
   // Se a lista for nula ou vazia, NÃO É ERRO. É apenas o início do sistema.
   // Retornamos false (sem ciclo) e deixamos a transação prosseguir.
   if (!allUsers || allUsers.length === 0) {
@@ -27,7 +26,7 @@ export async function findCycleAndResolve(
     const currentNode = path[path.length - 1];
 
     if (currentNode === targetNode) {
-      console.log("✅ CICLO ENCONTRADO:", path);
+      console.log("Ciclo encontrado:", path);
 
       let minAmount = newAmount;
       for (let i = 0; i < path.length - 1; i++) {

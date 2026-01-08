@@ -54,7 +54,6 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
       return;
     }
 
-    // NORMALIZAÇÃO CRÍTICA 🛡️
     // Transforma tudo em letras pequenas para garantir que 0xABC == 0xabc
     const safeMe = connectedAddress.toLowerCase();
     const safeCreditor = creditorAddress.toLowerCase();
@@ -74,11 +73,11 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
         return;
       }
 
-      console.log("--- INÍCIO DEBUG BFS (NORMALIZADO) ---");
+      console.log("INÍCIO DEBUG BFS");
       console.log("1. Eu sou (Devedor):", safeMe);
       console.log("2. Vou pagar a (Credor):", safeCreditor);
 
-      notification.info("A verificar ciclos...");
+      notification.info("A verificar ciclos");
 
       // Procura ciclo usando endereços normalizados
       const cycleInfo = await findCycleAndResolve(
@@ -94,7 +93,7 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
       if (cycleInfo.hasCycle && cycleInfo.path) {
         console.log("Ciclo detetado! Caminho:", cycleInfo.path);
 
-        notification.warning(`Ciclo detetado! A limpar dívidas...`, { duration: 4000 });
+        notification.warning(`Ciclo detetado! A limpar dívidas`, { duration: 4000 });
 
         // CONSTRUÇÃO DO CAMINHO
         // Garante que o primeiro e o último são exatamente 'safeMe'
@@ -107,7 +106,7 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
 
         pathArg.push(safeMe);
 
-        console.log("CAMINHO FINAL (Tudo minúsculas):", pathArg);
+        console.log("Caminho final (Tudo minúsculas):", pathArg);
       } else {
         console.log("Nenhum ciclo encontrado.");
       }
@@ -176,7 +175,7 @@ export const AddIOUForm = ({ onIOUAdded }: AddIOUFormProps) => {
             className={`btn btn-primary w-full ${isProcessing ? "loading" : ""}`}
             disabled={isProcessing || !contract}
           >
-            {isProcessing ? "A processar..." : "Enviar Dívida"}
+            {isProcessing ? "A processar" : "Enviar Dívida"}
           </button>
         </form>
       </div>
