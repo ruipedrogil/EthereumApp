@@ -1,93 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Address } from "@scaffold-ui/components";
 import type { NextPage } from "next";
 import { hardhat } from "viem/chains";
 import { useAccount } from "wagmi";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { Address } from "~~/components/scaffold-eth/Address";
+// Estes componentes já contêm toda a lógica (BFS, leituras, escritas) internamente.
+import { AddIOUForm } from "~~/components/splitwise/AddIOUForm";
+import { DebtList } from "~~/components/splitwise/DebtList";
+import { TotalOwedDisplay } from "~~/components/splitwise/TotalOwedDisplay";
+import { UsersList } from "~~/components/splitwise/UsersList";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-
-
-// Here is implemented the SPLITWISE LOGIC (CLIENT SIDE)
-
-// get all users
-async function getUsers(contract: any) {
-  return await contract.read.getAllUsers();
-}
-
-// BFS to find debt path
-async function bfs(contract: any, start: string, end: string) {
-  const queue: string[][] = [[start]];
-  const visited = new Set([start]);
-
-  while (queue.length > 0) {
-    const path = queue.shift()!;
-    const last = path[path.length - 1];
-
-    if (last === end) return path;
-
-    const users = await contract.read.getAllUsers();
-
-    for (const u of users) {
-      if (u === last) continue;  // avoids self-loop
-      const debt = await contract.read.lookup(last, u);
-      if (Number(debt) > 0 && !visited.has(u)) {
-        visited.add(u);
-        queue.push([...path, u]);
-      }
-    }
-  }
-
-  return null;
-}
-
-// get last activity timestamp
-async function getLastActive(contract: any, user: string) {
-  const ts = await contract.read.lastActive(user);
-  const timestamp = Number(ts);
-
-  if (timestamp === 0) {
-    return null;
-  }
-
-  return timestamp;
-}
-
-// add IOU with proper on-chain cycle resolution
-async function addIOU(contract: any, debtor: string, creditor: string, amount: number) {
-  const path = await bfs(contract, creditor, debtor);  // encontrar caminho creditor -> debtor baseado nas dívidas existentes
-
-  if (!path) {
-    return await contract.write.add_IOU([creditor, amount, []]);     // no cicle: empty cycle
-  }
-
-  // path: [creditor, ..., debtor]
-  // full cicle should be [debtor, creditor, ..., debtor]
-  const cycle = [debtor, ...path];
-
-  return await contract.write.add_IOU([creditor, amount, cycle]);
-}
-
-
-// calculate total owed
-async function getTotalOwed(contract: any, user: string) {
-  const users = await contract.read.getAllUsers();
-  let total = 0;
-
-  for (const u of users) {
-    const amount = await contract.read.lookup(user, u);
-    total += Number(amount);
-  }
-
-  return total;
-}
-
-
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();
+
+  // Estado simples para forçar a atualização das listas quando uma nova dívida é criada
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleIOUAdded = () => {
+    // Ao alterar este número, o componente DebtList (que usa isto como 'key') vai recarregar
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <>
@@ -148,6 +85,56 @@ const Home: NextPage = () => {
                 tab.
               </p>
             </div>
+          </div>
+        </div>
+
+        <div className="w-full bg-base-100 px-5 py-16 border-t border-base-300">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold text-primary">💸 Blockchain Splitwise App</h2>
+              <p className="text-base-content/70 mt-2">
+                Gestão de despesas descentralizada com resolução automática de ciclos.
+              </p>
+            </div>
+
+            {!connectedAddress ? (
+              <div className="alert alert-warning shadow-lg max-w-md mx-auto">
+                <span>⚠️ Por favor, conecte a sua carteira (Connect Wallet) para usar o Splitwise.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* COLUNA DA ESQUERDA: Formulário e Total */}
+                <div className="flex flex-col gap-6">
+                  {/* Componente: Total Devido */}
+                  <TotalOwedDisplay address={connectedAddress} />
+
+                  {/* Componente: Formulário de Adicionar Dívida */}
+                  <div className="card bg-base-200 shadow-xl border border-base-300">
+                    <div className="card-body">
+                      <h3 className="card-title mb-2">📝 Adicionar Nova Dívida</h3>
+                      <p className="text-xs text-base-content/60 mb-4">
+                        O algoritmo BFS verificará se existe um ciclo (ex: A-&gt;B-&gt;C-&gt;A) e resolverá a dívida
+                        automaticamente.
+                      </p>
+                      {/* Passamos a função de refresh para atualizar a lista após sucesso */}
+                      <AddIOUForm onIOUAdded={handleIOUAdded} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* COLUNA DA DIREITA: Listagens */}
+                <div className="flex flex-col gap-6">
+                  {/* Componente: Listas de Dívidas */}
+                  {/* Usamos a 'key' para forçar o componente a recarregar quando refreshTrigger muda */}
+                  <div key={refreshTrigger}>
+                    <DebtList address={connectedAddress} />
+                  </div>
+
+                  {/* Componente: Lista de Utilizadores */}
+                  <UsersList />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

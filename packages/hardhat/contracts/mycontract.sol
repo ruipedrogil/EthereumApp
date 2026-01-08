@@ -2,81 +2,58 @@
 pragma solidity ^0.8.17;
 
 contract Splitwise {
-    
-    // Mapping -> [Debtor][Creditor], it returns amount, which is, uint32 for gas optimization
     mapping(address => mapping(address => uint32)) public debts;
-
-    // list of all users to facilitate frontend retrieval
     address[] public users;
     mapping(address => bool) public isUser;
-
-    // timestamp of the last activity for each user
     mapping(address => uint256) public lastActive;
 
     event IouAdded(address indexed debtor, address indexed creditor, uint32 amount);
-    event CycleResolved(address indexed starter, uint32 reducedBy);
+    event CycleResolved(address indexed debtor, uint32 amountResolved);
 
-    // returns the amount that the debtor owes to the creditor
     function lookup(address debtor, address creditor) external view returns (uint32) {
         return debts[debtor][creditor];
     }
 
-    // returns the full list of users
     function getAllUsers() external view returns (address[] memory) {
         return users;
     }
 
-    // adds a debt (I Owe You (IOU)), msg.sender is the debtor.
-    // cycle: sequence of addresses forming a cycle starting and ending at msg.sender:
-    // [debtor, creditor, ..., debtor]
-    function add_IOU(address creditor, uint32 amount, address[] calldata cycle) external {
-        require(msg.sender != creditor, "You cannot owe money to yourself");
-        require(amount > 0, "The amount must be positive");
+    // Recebe 3 argumentos (o caminho do ciclo)
+    function add_IOU(address creditor, uint32 amount, address[] calldata path) external {
+        require(msg.sender != creditor, "Nao pode dever a si mesmo");
+        require(amount > 0, "O valor tem de ser positivo");
 
-        // add the new debt
+        // Adiciona a dívida normalmente
         debts[msg.sender][creditor] += amount;
-
         _updateUser(msg.sender);
         _updateUser(creditor);
-
         emit IouAdded(msg.sender, creditor, amount);
 
-        // if no cycle provided, nothing to resolve
-        if (cycle.length == 0) {
-            return;
+        // Se houver um caminho (Ciclo), resolve-o agora!
+        if (path.length > 0) {
+            _resolveCycle(path);
         }
-
-        // structural checks on the cycle
-        require(cycle.length >= 2, "Invalid cycle length");
-        require(cycle[0] == msg.sender, "Cycle must start at debtor");
-        require(cycle[cycle.length - 1] == msg.sender, "Cycle must end at debtor");
-
-        // find minimum edge weight along the cycle
-        uint32 minAmount = type(uint32).max;
-
-        for (uint256 i = 0; i < cycle.length - 1; i++) {
-            address from = cycle[i];
-            address to = cycle[i + 1];
-            uint32 debt = debts[from][to];
-            require(debt > 0, "Invalid cycle edge with zero debt");
-            if (debt < minAmount) {
-                minAmount = debt;
-            }
-        }
-
-        // resolve: subtract minAmount from every edge in the cycle
-        for (uint256 i = 0; i < cycle.length - 1; i++) {
-            address from = cycle[i];
-            address to = cycle[i + 1];
-            debts[from][to] -= minAmount;
-        }
-
-        emit CycleResolved(msg.sender, minAmount);
-        
-        emit CycleResolved(msg.sender, minAmount);       
     }
 
-    // internal helper to track new users and update timestamps
+    // Lógica interna para subtrair a dívida mínima do ciclo
+    function _resolveCycle(address[] memory path) internal {
+        require(path.length >= 2, "Caminho invalido");
+        
+        // Achar o valor minimo no ciclo
+        uint32 minAmount = type(uint32).max;
+        for (uint i = 0; i < path.length - 1; i++) {
+            uint32 debt = debts[path[i]][path[i+1]];
+            if (debt < minAmount) minAmount = debt;
+        }
+
+        // Subtrair esse valor de todas as arestas (Resolver o ciclo)
+        for (uint i = 0; i < path.length - 1; i++) {
+            debts[path[i]][path[i+1]] -= minAmount;
+        }
+        
+        emit CycleResolved(path[0], minAmount);
+    }
+
     function _updateUser(address user) internal {
         if (!isUser[user]) {
             isUser[user] = true;
