@@ -10,7 +10,7 @@ export async function findCycleAndResolve(
 
   console.log(`Lista de Users (Total: ${allUsers.length}):`, allUsers);
 
-  // VERIFICAÇÃO 1: A lista tem toda a gente?
+  // A lista tem toda a gente?
   if (!allUsers.includes(startNode) || !allUsers.includes(targetNode)) {
     console.error("Erro, o Credor ou o Devedor não estão na lista de users!");
     console.error(`Falta: ${!allUsers.includes(startNode) ? "Credor" : "Eu"}`);
