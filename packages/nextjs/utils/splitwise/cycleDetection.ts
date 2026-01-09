@@ -39,8 +39,8 @@ export async function findCycleAndResolve(
     return { hasCycle: false };
   }
 
-  // bfs
-  console.log(`A iniciar BFS de ${startNode.slice(0, 6)} para ${targetNode.slice(0, 6)}`);
+  // dfs
+  console.log(`A iniciar DFS de ${startNode.slice(0, 6)} para ${targetNode.slice(0, 6)}`);
 
   const queue: string[][] = [[startNode]];
   const visited = new Set<string>();
@@ -73,6 +73,6 @@ export async function findCycleAndResolve(
     }
   }
 
-  console.log("BFS terminou sem encontrar caminho.");
+  console.log("DFS terminou sem encontrar caminho.");
   return { hasCycle: false };
 }

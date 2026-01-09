@@ -1,109 +1,136 @@
-
 ## Blockchain Splitwise (Ethereum Payment App)
-Um sistema descentralizado para gestão de dívidas e créditos com resolução automática de ciclos.
 
-Este projeto é uma implementação de uma dApp (Aplicação Descentralizada) na rede Ethereum que permite aos utilizadores rastrear quem deve dinheiro a quem, funcionando como uma versão blockchain do Splitwise.
+Um sistema descentralizado para gestão de dívidas e créditos com resolução automática de ciclos **on-chain**.
 
-O projeto foi desenvolvido utilizando o toolkit Scaffold-ETH 2, cumprindo os requisitos de utilizar Ethereum, Solidity e um framework moderno de desenvolvimento.
+Este projeto é uma implementação de uma dApp (Aplicação Descentralizada) na rede **Ethereum** que permite aos utilizadores rastrear quem deve dinheiro a quem, funcionando como uma versão blockchain do **Splitwise**.
 
+O projeto foi desenvolvido utilizando o toolkit **Scaffold-ETH 2**, cumprindo os requisitos de utilização de **Ethereum, Solidity e um framework moderno de desenvolvimento**.
+
+---
 
 ## Funcionalidades do Projeto
 
-Esta aplicação implementa a lógica exigida para o controlo de IOUs (I Owe You):
+Esta aplicação implementa a lógica exigida para o controlo de IOUs (*I Owe You*) com uma arquitetura robusta:
 
+- **Adicionar Dívida (IOU)**  
+  Permite registar que o utilizador atual deve um valor a outro.  
+  O contrato verifica automaticamente se existe uma dívida inversa e faz o abatimento imediato.
 
-- **Adicionar Dívida** (add_IOU): Permite registar que o utilizador atual deve um valor a outro utilizador (Credor).
+- **Resolução de Ciclos On-Chain**  
+  Implementação de lógica de grafos (**DFS – Depth First Search**) diretamente no **Smart Contract**.  
+  O sistema deteta ciclos de dívida (ex.: `A → B → C → A`) e resolve-os **atomicamente na mesma transação**, garantindo eficiência e consistência do ledger.
 
+- **Consultar Dívidas (`lookup`)**  
+  Verifica quanto um devedor deve a um credor específico diretamente na blockchain.
 
-- **Resolução de Ciclos (Loop Resolution)**: Lógica implementada no cliente (Frontend) que deteta ciclos de dívida (Ex: A → B → C → A) e resolve-os automaticamente antes de enviar para a blockchain, minimizando o número de transações e dívidas pendentes.
+- **Lista de Utilizadores (`getAllUsers`)**  
+  Recupera todos os endereços que já interagiram com o sistema, permitindo iterar sobre o grafo de dívidas.
 
-
-- **Consultar Dívidas (lookup)**: Verifica quanto um devedor deve a um credor específico diretamente na Blockchain.
-
-
-- **Lista de Utilizadores (getUsers)**: Recupera todos os endereços que já interagiram com o sistema.
-
-
-- **Total Devido (getTotalOwed)**: Calcula o montante total que um utilizador deve a todos os outros.
+---
 
 ## Tech Stack
 
-- Blockchain: Ethereum (Local Hardhat Network).
+- **Blockchain**: Ethereum (Hardhat Network local)
+- **Smart Contracts**: Solidity `v0.8.17+`  
+  - Otimização de tipos (`uint32`)
+  - Algoritmos de grafos on-chain
+- **Frontend**: Next.js, React, TypeScript, TailwindCSS
+- **Framework**: Scaffold-ETH 2
+- **Interação com a Blockchain**: Wagmi & Viem
 
-- Smart Contracts: Solidity (v0.8.17+).
-
-- Frontend: NextJS, React, TypeScript e TailwindCSS (via Scaffold-ETH 2).
-
-- Interação com Blockchain: Wagmi, Viem e Ethers.js.
+---
 
 ## Como Correr o Projeto (Quickstart)
-Siga os passos abaixo para iniciar o ambiente de desenvolvimento local:
 
-**1. Instalar Dependências**
+Siga os passos abaixo para iniciar o ambiente de desenvolvimento local.
 
-Certifique-se de que tem o Node (>= v18) e Yarn instalados.
+### 1. Instalar Dependências
+
+Certifique-se de que tem:
+- Node.js `>= v18`
+- Yarn
 
 ```
 yarn install
 ```
 
-**2. Iniciar a Blockchain Local (Terminal 1)**
+## 2. Iniciar a Blockchain Local (Terminal 1)
 
-Este comando inicia uma rede Ethereum local (Hardhat Network) para testes.
-
+Inicia uma rede Ethereum local usando Hardhat.
 
 ```
 yarn chain
 ```
 
-**3. Fazer Deploy do Contrato (Terminal 2)**
+## 3. Fazer Deploy do Contrato (Terminal 2)
 
-Compila o contrato Splitwise.sol e envia-o para a rede local.
+Compila o contrato Splitwise.sol e faz deploy para a rede local.
+
+- Use --reset se reiniciar a blockchain.
 
 ```
 yarn deploy --reset
 ```
 
-**4. Iniciar o Frontend (Terminal 3)**
- 
-Inicia a aplicação web em React.
+## 4. Iniciar o Frontend (Terminal 3)
+
+Inicia a aplicação web em React / Next.js.
 
 ```
 yarn start
-```
-Visite http://localhost:3000 para interagir com a aplicação.
+``` 
+
+Aceda a:
+- http://localhost:3000
 
 ## Estrutura do Projeto
 
-Os ficheiros principais modificados para este exercício encontram-se em:
+Os ficheiros principais modificados para este exercício são:
 
-**Smart Contract (Backend)**:
+###  Smart Contract (Backend)
 
+```
+packages/hardhat/contracts/mycontract.sol
+```
 
-- packages/hardhat/contracts/Splitwise.sol: Contém a lógica on-chain para armazenar dívidas e utilizadores.
+- Contém a lógica de negócio
 
-**Frontend & Algoritmos**:
+- Estruturas de dados DebtNode
 
+- Algoritmo de resolução de ciclos (_depthFirstSearch)
 
-- packages/nextjs/app/page.tsx: Contém a interface do utilizador e a lógica JavaScript crítica, incluindo o algoritmo BFS (Breadth-First Search) para deteção e resolução de ciclos.
+### Frontend
+```
+packages/nextjs/components/splitwise/AddIOUForm.tsx
+```
 
-**Script de Deploy**:
+- Formulário interativo para envio de transações
 
-- packages/hardhat/deploy/00_deploy_your_contract.ts: Script configurado para fazer o deploy do contrato Splitwise.
+- Verificação matemática do valor efetivamente abatido pelo contrato
 
-## Como Testar (Sanity Check)
+- Notificações de sucesso e deteção de ciclos
 
- **1**.  Para validar a resolução de ciclos conforme o enunciado:
+## Como Testar
 
- **2**.  Use a interface para selecionar o Utilizador A e adicione uma dívida de 10 ao Utilizador B.
+- Selecione o Utilizador A e adicione uma dívida de 10 ao Utilizador B
 
- **3**.  Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C.
+- Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C
 
- **4**.  Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A.
+- Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A
 
+## Resultado Esperado
 
-**Resultado Esperado**: O sistema deve detetar o ciclo, reduzir as dívidas localmente e, no final, todas as dívidas devem ser 0 (ou não aparecerem na lista), pois o ciclo foi resolvido.
+- O Smart Contract deteta o ciclo fechado
 
---- 
+- O frontend exibe um pop-up:
 
-*Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas da Universidade da Beira Interior.*
+```
+🪄 CICLO DETETADO
+```
+
+- As tabelas de dívidas ficam vazias (ou com valores a 0), provando a resolução automática on-chain
+
+---
+
+Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas
+Universidade da Beira Interior (UBI)
