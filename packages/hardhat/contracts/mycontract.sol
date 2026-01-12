@@ -46,7 +46,7 @@ contract Splitwise {
         _registerUser(debtor);
         _registerUser(creditor);
 
-        // Check if they owe us first. If yes, then reduce the amount (Netting)
+        // Check if they owe us first. If yes, then reduce the amount
         DebtNode[] storage creditorDebts = debtGraph[creditor];
         for (uint i = 0; i < creditorDebts.length; i++) {
             if (creditorDebts[i].creditor == debtor) {

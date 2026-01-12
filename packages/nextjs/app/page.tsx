@@ -113,7 +113,7 @@ const Home: NextPage = () => {
                     <div className="card-body">
                       <h3 className="card-title mb-2">📝 Adicionar Nova Dívida</h3>
                       <p className="text-xs text-base-content/60 mb-4">
-                        O algoritmo BFS verificará se existe um ciclo (ex: A-&gt;B-&gt;C-&gt;A) e resolverá a dívida
+                        O algoritmo DFS verificará se existe um ciclo (ex: A-&gt;B-&gt;C-&gt;A) e resolverá a dívida
                         automaticamente.
                       </p>
                       {/* Passamos a função de refresh para atualizar a lista após sucesso */}

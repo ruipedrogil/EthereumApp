@@ -18,7 +18,7 @@ export const TotalOwedDisplay = ({ address }: TotalOwedDisplayProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // 1. Prevenção de execução se dados essenciais faltarem
+    // Prevenção de execução se dados essenciais faltarem
     if (!publicClient || !contract || !address) return;
 
     const loadTotalOwed = async () => {
@@ -43,7 +43,7 @@ export const TotalOwedDisplay = ({ address }: TotalOwedDisplayProps) => {
 
         let sum = 0;
 
-        // 3. Loop protegido
+        // Loop protegido
         for (const user of usersArray) {
           // Não verificar dívida comigo mesmo ou endereços inválidos
           if (!user || user.toLowerCase() === address.toLowerCase()) continue;
