@@ -98,12 +98,7 @@ contract Splitwise {
         }
     }
 
-    function _depthFirstSearch(
-        address currentNode,
-        address targetNode,
-        address[] memory visitedPath,
-        uint32[] memory pathWeights
-    ) private returns (uint32) {
+    function _depthFirstSearch(address currentNode, address targetNode, address[] memory visitedPath, uint32[] memory pathWeights) private returns (uint32) {
         DebtNode[] storage edges = debtGraph[currentNode];
 
         for (uint i = 0; i < edges.length; i++) {
@@ -145,12 +140,7 @@ contract Splitwise {
         return 0;
     }
 
-    function _reduceCycle(
-        address[] memory path, 
-        uint32[] memory weights, 
-        uint32 closingWeight, 
-        address closingNode
-    ) private returns (uint32) {
+    function _reduceCycle(address[] memory path, uint32[] memory weights, uint32 closingWeight, address closingNode) private returns (uint32) {
         // Find minimum flow
         uint32 minFlow = closingWeight;
         for (uint i = 0; i < weights.length; i++) {
