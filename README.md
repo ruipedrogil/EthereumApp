@@ -1,52 +1,48 @@
 ## Blockchain Splitwise (Ethereum Payment App)
 
-Um sistema descentralizado para gestão de dívidas e créditos com resolução automática de ciclos **on-chain**.
+A decentralized system for debt and credit management with automatic **on-chain** cycle resolution.
 
-Este projeto é uma implementação de uma dApp (Aplicação Descentralizada) na rede **Ethereum** que permite aos utilizadores rastrear quem deve dinheiro a quem, funcionando como uma versão blockchain do **Splitwise**.
+This project is an implementation of a dApp (Decentralized Application) on the **Ethereum** network that allows users to track who owes money to whom, functioning as a blockchain version of **Splitwise**.
 
-O projeto foi desenvolvido utilizando o toolkit **Scaffold-ETH 2**, cumprindo os requisitos de utilização de **Ethereum, Solidity e um framework moderno de desenvolvimento**.
+The project was developed using the **Scaffold-ETH 2** toolkit, fulfilling the requirements of using **Ethereum, Solidity, and a modern development framework**.
 
 ---
 
-## Funcionalidades do Projeto
+## Project Features
 
-Esta aplicação implementa a lógica exigida para o controlo de IOUs (*I Owe You*) com uma arquitetura robusta:
+This application implements the logic required for tracking IOUs (*I Owe You*) with a robust architecture:
 
-- **Adicionar Dívida (IOU)**  
-  Permite registar que o utilizador atual deve um valor a outro.  
-  O contrato verifica automaticamente se existe uma dívida inversa e faz o abatimento imediato.
+- **Add Debt (IOU)** Allows recording that the current user owes an amount to another.  
+  The contract automatically checks if there is a reverse debt and performs immediate netting.
 
-- **Resolução de Ciclos On-Chain**  
-  Implementação de lógica de grafos (**DFS – Depth First Search**) diretamente no **Smart Contract**.  
-  O sistema deteta ciclos de dívida (ex.: `A → B → C → A`) e resolve-os **atomicamente na mesma transação**, garantindo eficiência e consistência do ledger.
+- **On-Chain Cycle Resolution** Implementation of graph logic (**DFS – Depth First Search**) directly in the **Smart Contract**.  
+  The system detects debt cycles (e.g., `A → B → C → A`) and resolves them **atomically in the same transaction**, ensuring ledger efficiency and consistency.
 
-- **Consultar Dívidas (`lookup`)**  
-  Verifica quanto um devedor deve a um credor específico diretamente na blockchain.
+- **Check Debts (`lookup`)** Verifies how much a debtor owes to a specific creditor directly on the blockchain.
 
-- **Lista de Utilizadores (`getAllUsers`)**  
-  Recupera todos os endereços que já interagiram com o sistema, permitindo iterar sobre o grafo de dívidas.
+- **User List (`getAllUsers`)** Retrieves all addresses that have interacted with the system, allowing iteration over the debt graph.
 
 ---
 
 ## Tech Stack
 
-- **Blockchain**: Ethereum (Hardhat Network local)
+- **Blockchain**: Ethereum (Hardhat Local Network)
 - **Smart Contracts**: Solidity `v0.8.17+`  
-  - Otimização de tipos (`uint32`)
-  - Algoritmos de grafos on-chain
+  - Type optimization (`uint32`)
+  - On-chain graph algorithms
 - **Frontend**: Next.js, React, TypeScript, TailwindCSS
 - **Framework**: Scaffold-ETH 2
-- **Interação com a Blockchain**: Wagmi & Viem
+- **Blockchain Interaction**: Wagmi & Viem
 
 ---
 
-## Como Correr o Projeto (Quickstart)
+## How to Run the Project (Quickstart)
 
-Siga os passos abaixo para iniciar o ambiente de desenvolvimento local.
+Follow the steps below to start the local development environment.
 
-### 1. Instalar Dependências
+### 1. Install Dependencies
 
-Certifique-se de que tem:
+Ensure you have:
 - Node.js `>= v18`
 - Yarn
 
@@ -54,38 +50,39 @@ Certifique-se de que tem:
 yarn install
 ```
 
-## 2. Iniciar a Blockchain Local (Terminal 1)
+## 2. Start Local Blockchain (Terminal 1)
 
-Inicia uma rede Ethereum local usando Hardhat.
+Starts a local Ethereum network using Hardhat.
 
 ```
 yarn chain
 ```
 
-## 3. Fazer Deploy do Contrato (Terminal 2)
+## 3. Deploy the Contract (Terminal 2)
 
-Compila o contrato Splitwise.sol e faz deploy para a rede local.
+Compiles the Splitwise.sol contract and deploys it to the local network.
 
-- Use --reset se reiniciar a blockchain.
+- Use `--reset` if you restart the blockchain.
 
 ```
 yarn deploy --reset
 ```
 
-## 4. Iniciar o Frontend (Terminal 3)
+## 4. Start the Frontend (Terminal 3)
 
-Inicia a aplicação web em React / Next.js.
+Starts the web application in React / Next.js.
 
 ```
 yarn start
 ``` 
 
-Aceda a:
+Access at:
 - http://localhost:3000
 
-## Estrutura do Projeto
+## Project Structure
 
-Os ficheiros principais modificados para este exercício são:
+The main files modified for this exercise are:
+
 
 ###  Smart Contract (Backend)
 
@@ -93,44 +90,44 @@ Os ficheiros principais modificados para este exercício são:
 packages/hardhat/contracts/mycontract.sol
 ```
 
-- Contém a lógica de negócio
+- Contains business logic
 
-- Estruturas de dados DebtNode
+- DebtNode data structures
 
-- Algoritmo de resolução de ciclos (_depthFirstSearch)
+- Cycle resolution algorithm (`_depthFirstSearch`)
 
 ### Frontend
 ```
 packages/nextjs/components/splitwise/AddIOUForm.tsx
 ```
 
-- Formulário interativo para envio de transações
+- Interactive form for transaction submission
 
-- Verificação matemática do valor efetivamente abatido pelo contrato
+- Mathematical verification of the amount effectively deducted by the contract
 
-- Notificações de sucesso e deteção de ciclos
+- Success notifications and cycle detection
 
-## Como Testar
+## How to Test
 
-- Selecione o Utilizador A e adicione uma dívida de 10 ao Utilizador B
+- Select User A and add a debt of 10 to User B
 
-- Selecione o Utilizador B e adicione uma dívida de 10 ao Utilizador C
+- Select User B and add a debt of 10 to User C
 
-- Selecione o Utilizador C e adicione uma dívida de 10 ao Utilizador A
+- Select User C and add a debt of 10 to User A
 
-## Resultado Esperado
+## Expected Result
 
-- O Smart Contract deteta o ciclo fechado
+- The Smart Contract detects the closed cycle
 
-- O frontend exibe um pop-up:
+- The frontend displays a pop-up:
 
 ```
-🪄 CICLO DETETADO
+🪄 CYCLE DETECTED
 ```
 
-- As tabelas de dívidas ficam vazias (ou com valores a 0), provando a resolução automática on-chain
+- The debt tables become empty (or show 0 values), proving automatic on-chain resolution
 
 ---
 
-Projeto desenvolvido no âmbito da disciplina de Blockchains e Criptomoedas
-Universidade da Beira Interior (UBI)
+Project developed within the scope of the Blockchains and Cryptocurrencies course
+University of Beira Interior (UBI)
